@@ -1,0 +1,23 @@
+{'products': [
+    {'product': 1, 'quantity': 1},
+    {'product': 2, 'quantity': 1},
+    {'product': 3, 'quantity': 1}
+    ],
+'firstname': '1',
+'lastname': '1',
+'phonenumber': '1',
+'address': '1'}
+
+
+
+{
+    "products": [
+    {"product": 1, "quantity": 1},
+    {"product": 2, "quantity": 4},
+    {"product": 3, "quantity": 10}
+    ],
+    "firstname": "Василий",
+    "lastname": "Васильевич",
+    "phonenumber": "+79123456789",
+    "address": "Москва, ул. Таллинская, д. 19"
+}
