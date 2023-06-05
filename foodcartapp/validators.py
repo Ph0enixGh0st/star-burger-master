@@ -1,5 +1,6 @@
 from django.core.validators import MinValueValidator, MaxValueValidator
 
+
 lng_validator_message = 'Диапазон от -180 до 180'
 lng_validators = [
     MinValueValidator(-180, lng_validator_message),

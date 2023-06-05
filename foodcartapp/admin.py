@@ -50,8 +50,6 @@ class ProductAdmin(admin.ModelAdmin):
         'category',
     ]
     search_fields = [
-        # FIXME SQLite can not convert letter case for cyrillic words properly, so search will be buggy.
-        # Migration to PostgreSQL is necessary
         'name',
         'category__name',
     ]
@@ -93,7 +91,7 @@ class ProductAdmin(admin.ModelAdmin):
 
     def get_image_preview(self, obj):
         if not obj.image:
-            return 'выберите картинку'
+            return 'выберите  изображение'
         return format_html('<img src="{url}" style="max-height: 200px;"/>', url=obj.image.url)
     get_image_preview.short_description = 'превью'
 
