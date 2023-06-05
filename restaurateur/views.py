@@ -102,9 +102,6 @@ def view_restaurants(request):
 def view_orders(request):
     orders = Order.objects.exclude(status='completed')
 
-    for order in orders:
-        print('ORDER ADRESS FROM views.restaurateur: ', order.address)
-
     distances = {}
     for order in orders:
         restaurants_with_all_order_products = fetch_available_restaurants(order.id)
