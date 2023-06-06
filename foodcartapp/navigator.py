@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 
 from geopy.distance import great_circle as RADIUS
 
@@ -16,6 +17,7 @@ from .models import (
 
 
 YANDEX_MAPS_API_KEY = settings.YANDEX_MAPS_API_KEY
+
 
 def fetch_coordinates(address, api_key=YANDEX_MAPS_API_KEY):
     api_url = "https://geocode-maps.yandex.ru/1.x"
@@ -36,13 +38,10 @@ def fetch_coordinates(address, api_key=YANDEX_MAPS_API_KEY):
 
 
 def fetch_available_restaurants(order_id):
-    restaurants = Restaurant.objects.prefetch_related(
-        'menu_items'
-        ).order_by('name')
-    products = Product.objects.prefetch_related('items')
-    products_in_order = products.filter(
-        items__order=order_id,
-        ).order_by('name').values_list('id')
+    restaurants = Restaurant.objects.prefetch_related('menu_items').order_by('name')
+    products_in_order = Product.objects.prefetch_related('items').filter(
+        Q(items__order__id=order_id)
+    ).order_by('name').values_list('id', flat=True)
     menu_items = RestaurantMenuItem.objects.all()
 
     is_product_in_restaurant = {}
@@ -72,7 +71,7 @@ def fetch_restaurants_distances(restaurants, order):
 
     else:
         if not all([order.latitude, order.longitude]):
-            if order_coords:=fetch_coordinates(order.address):
+            if order_coords := fetch_coordinates(order.address):
                 latitude, longitude = order_coords
             else:
                 return {}
@@ -80,27 +79,27 @@ def fetch_restaurants_distances(restaurants, order):
             order.longitude = longitude
             order.save()
 
-            print('ORDER ADRESS models.foodcartapp CHECK #1: ', order.address)
-
             APICache.objects.create(
                 address=order.address,
                 latitude=latitude,
                 longitude=longitude,
                 requested_at=datetime.now()
             )
-            print('Created new api_cache address: ', APICache.objects.filter(address=order.address))
 
         else:
             order_coords = (order.latitude, order.longitude)
     restaurants_distances = {}
     for restaurant in restaurants:
         if not all([restaurant.latitude, restaurant.longitude]):
-            if restaurant_coordinates:=fetch_coordinates(restaurant.address):
-                latitude, longitude = restaurant_coordinates
-                restaurant.latitude = latitude
-                restaurant.longitude = longitude
-                restaurant.save()
-                restaurant_coords = (latitude, longitude)
+            if restaurant.address:
+                if restaurant_coordinates := fetch_coordinates(restaurant.address):
+                    latitude, longitude = restaurant_coordinates
+                    restaurant.latitude = latitude
+                    restaurant.longitude = longitude
+                    restaurant.save()
+                    restaurant_coords = (latitude, longitude)
+                else:
+                    continue
             else:
                 continue
         else:

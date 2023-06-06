@@ -65,25 +65,7 @@ def register_order(request):
 
     serializer = OrderSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-
-    order_positions = serializer.validated_data
-    products = order_positions.pop('products')
-
-    with transaction.atomic():
-        order = Order.objects.create(**order_positions)
-        order_items = []
-        for product_item in products:
-            product = product_item['product']
-            product_quantity = product_item['quantity']
-            order_items.append(
-                OrderItem(
-                    product=product,
-                    item_price=product.price,
-                    quantity=product_quantity,
-                    order=order,
-                )
-            )
-        OrderItem.objects.bulk_create(order_items)
+    order = serializer.save()
 
     serializer = OrderSerializer(order)
 
