@@ -107,12 +107,15 @@ def fetch_restaurants_distances(restaurants, order):
                     restaurant.save()
                     restaurant_coords = (latitude, longitude)
                 else:
-                    continue
+                    logging.error(
+                        f"Coordinates failed: haven't received coords {restaurant.name}"
+                    )
+                    restaurant_coords = (0, 0)
             else:
                 logging.error(
                     f"Coordinates failed: corrupt restaurant address for {restaurant.name}"
                 )
-                continue
+                restaurant_coords = (0, 0)
         else:
             restaurant_coords = (restaurant.latitude, restaurant.longitude)
 
