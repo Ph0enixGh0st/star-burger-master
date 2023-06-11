@@ -6,6 +6,7 @@ from django.db.models import Q
 
 from geopy.distance import great_circle as RADIUS
 
+import logging
 import requests
 
 from api_cache.models import APICache
@@ -17,6 +18,8 @@ from .models import (
 
 
 YANDEX_MAPS_API_KEY = settings.YANDEX_MAPS_API_KEY
+
+logging.basicConfig(filename='error.log', level=logging.ERROR)
 
 
 def fetch_coordinates(address, api_key=YANDEX_MAPS_API_KEY):
@@ -71,21 +74,26 @@ def fetch_restaurants_distances(restaurants, order):
 
     else:
         if not all([order.latitude, order.longitude]):
-            if order_coords := fetch_coordinates(order.address):
-                latitude, longitude = order_coords
+            if order.address:
+                if order_coords := fetch_coordinates(order.address):
+                    latitude, longitude = order_coords
+                else:
+                    return {}
+                order.latitude = latitude
+                order.longitude = longitude
+                order.save()
+
+                APICache.objects.create(
+                    address=order.address,
+                    latitude=latitude,
+                    longitude=longitude,
+                    requested_at=datetime.now()
+                )
             else:
-                return {}
-            order.latitude = latitude
-            order.longitude = longitude
-            order.save()
-
-            APICache.objects.create(
-                address=order.address,
-                latitude=latitude,
-                longitude=longitude,
-                requested_at=datetime.now()
-            )
-
+                logging.error(
+                    f"Coordinates failed: corrupt order address for id {order.id}"
+                )
+                order_coords = (0, 0)
         else:
             order_coords = (order.latitude, order.longitude)
     restaurants_distances = {}
@@ -101,6 +109,9 @@ def fetch_restaurants_distances(restaurants, order):
                 else:
                     continue
             else:
+                logging.error(
+                    f"Coordinates failed: corrupt restaurant address for {restaurant.name}"
+                )
                 continue
         else:
             restaurant_coords = (restaurant.latitude, restaurant.longitude)
