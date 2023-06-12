@@ -119,7 +119,11 @@ def fetch_restaurants_distances(restaurants, order):
         else:
             restaurant_coords = (restaurant.latitude, restaurant.longitude)
 
-        distance = RADIUS(order_coords, restaurant_coords).km
+        if order_coords or restaurant_coords == (0, 0):
+            distance = -999999
+        else:
+            distance = RADIUS(order_coords, restaurant_coords).km
+
         restaurants_distances[restaurant] = distance
 
     restaurants_distances_ordered = dict(
