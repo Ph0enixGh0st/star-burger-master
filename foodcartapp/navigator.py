@@ -93,7 +93,7 @@ def fetch_restaurants_distances(restaurants, order):
                 logging.error(
                     f"Coordinates failed: corrupt order address for id {order.id}"
                 )
-                order_coords = (0, 0)
+                order_coords = None
         else:
             order_coords = (order.latitude, order.longitude)
     restaurants_distances = {}
@@ -110,16 +110,16 @@ def fetch_restaurants_distances(restaurants, order):
                     logging.error(
                         f"Coordinates failed: haven't received coords {restaurant.name}"
                     )
-                    restaurant_coords = (0, 0)
+                    restaurant_coords = None
             else:
                 logging.error(
                     f"Coordinates failed: corrupt restaurant address for {restaurant.name}"
                 )
-                restaurant_coords = (0, 0)
+                restaurant_coords = None
         else:
             restaurant_coords = (restaurant.latitude, restaurant.longitude)
 
-        if order_coords or restaurant_coords == (0, 0):
+        if order_coords or restaurant_coords is None:
             distance = None
         else:
             distance = RADIUS(order_coords, restaurant_coords).km
