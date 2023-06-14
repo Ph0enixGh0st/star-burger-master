@@ -2,7 +2,6 @@ from datetime import datetime
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
 
 from geopy.distance import great_circle as RADIUS
 
@@ -42,9 +41,7 @@ def fetch_coordinates(address, api_key=YANDEX_MAPS_API_KEY):
 
 def fetch_available_restaurants(order_id):
     restaurants = Restaurant.objects.prefetch_related('menu_items').order_by('name')
-    products_in_order = Product.objects.prefetch_related('items').filter(
-        Q(items__order__id=order_id)
-    ).order_by('name').values_list('id', flat=True)
+    products_in_order = Product.objects.with_items_in_order(order_id).order_by('name').values_list('id', flat=True)
     menu_items = RestaurantMenuItem.objects.all()
 
     is_product_in_restaurant = {}
@@ -71,59 +68,40 @@ def fetch_restaurants_distances(restaurants, order):
 
     if cached_address:
         order_coords = (cached_address.latitude, cached_address.longitude)
-
     else:
         if not all([order.latitude, order.longitude]):
-            if order.address:
-                if order_coords := fetch_coordinates(order.address):
-                    latitude, longitude = order_coords
-                else:
-                    return {}
-                order.latitude = latitude
-                order.longitude = longitude
-                order.save()
-
-                APICache.objects.create(
-                    address=order.address,
-                    latitude=latitude,
-                    longitude=longitude,
-                    requested_at=datetime.now()
-                )
+            if order_coords := fetch_coordinates(order.address):
+                latitude, longitude = order_coords
             else:
-                logging.error(
-                    f"Coordinates failed: corrupt order address for id {order.id}"
-                )
-                order_coords = None
+                return {}
+            order.latitude = latitude
+            order.longitude = longitude
+            order.save()
+
+            APICache.objects.create(
+                address=order.address,
+                latitude=latitude,
+                longitude=longitude,
+                requested_at=datetime.now()
+            )
         else:
             order_coords = (order.latitude, order.longitude)
+
     restaurants_distances = {}
     for restaurant in restaurants:
         if not all([restaurant.latitude, restaurant.longitude]):
-            if restaurant.address:
-                if restaurant_coordinates := fetch_coordinates(restaurant.address):
-                    latitude, longitude = restaurant_coordinates
-                    restaurant.latitude = latitude
-                    restaurant.longitude = longitude
-                    restaurant.save()
-                    restaurant_coords = (latitude, longitude)
-                else:
-                    logging.error(
-                        f"Coordinates failed: haven't received coords {restaurant.name}"
-                    )
-                    restaurant_coords = None
+            if restaurant_coordinates := fetch_coordinates(restaurant.address):
+                latitude, longitude = restaurant_coordinates
+                restaurant.latitude = latitude
+                restaurant.longitude = longitude
+                restaurant.save()
+                restaurant_coords = (latitude, longitude)
             else:
-                logging.error(
-                    f"Coordinates failed: corrupt restaurant address for {restaurant.name}"
-                )
-                restaurant_coords = None
+                continue
         else:
             restaurant_coords = (restaurant.latitude, restaurant.longitude)
 
-        if order_coords or restaurant_coords is None:
-            distance = None
-        else:
-            distance = RADIUS(order_coords, restaurant_coords).km
-
+        distance = RADIUS(order_coords, restaurant_coords).km
         restaurants_distances[restaurant] = distance
 
     restaurants_distances_ordered = dict(

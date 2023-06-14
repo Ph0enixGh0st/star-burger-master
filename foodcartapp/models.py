@@ -53,6 +53,9 @@ class ProductQuerySet(models.QuerySet):
         )
         return self.filter(pk__in=products)
 
+    def with_items_in_order(self, order_id):
+        return self.prefetch_related('items').filter(items__order__id=order_id)
+
 
 class ProductCategory(models.Model):
     name = models.CharField(
