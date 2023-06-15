@@ -22,16 +22,19 @@ logging.basicConfig(filename='error.log', level=logging.ERROR)
 
 
 def fetch_coordinates(address, api_key=YANDEX_MAPS_API_KEY):
-    api_url = "https://geocode-maps.yandex.ru/1.x"
-    response = requests.get(api_url, params={
-        "geocode": address,
-        "apikey": api_key,
-        "format": "json",
-    })
-    response.raise_for_status()
-    found_places = response.json()['response']['GeoObjectCollection']['featureMember']
+    try:
+        api_url = "https://geocode-maps.yandex.ru/1.x"
+        response = requests.get(api_url, params={
+            "geocode": address,
+            "apikey": api_key,
+            "format": "json",
+        })
+        response.raise_for_status()
+        found_places = response.json()['response']['GeoObjectCollection']['featureMember']
 
-    if not found_places:
+        if not found_places:
+            return None
+    except:
         return None
 
     most_relevant = found_places[0]
